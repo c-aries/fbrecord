@@ -1,1 +1,11 @@
 record framebuffer tty action to video.
+
+/usr/share/doc/libjpeg8-dev/libjpeg.txt.gz
+	Allocate and initialize a JPEG compression object
+	Specify the destination for the compressed data (eg, a file)
+	Set parameters for compression, including image size & colorspace
+	jpeg_start_compress(...);
+	while (scan lines remain to be written)
+		jpeg_write_scanlines(...);
+	jpeg_finish_compress(...);
+	Release the JPEG compression object

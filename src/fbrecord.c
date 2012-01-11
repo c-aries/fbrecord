@@ -6,6 +6,42 @@
 #include <fcntl.h>
 #include <linux/ioctl.h>
 #include <linux/fb.h>
+#include <jpeglib.h>
+
+static void genjpeg (unsigned char *buf, int width, int height)
+{
+  struct jpeg_compress_struct cinfo;
+  struct jpeg_error_mgr jerr;
+  JSAMPROW row_pointer[1];
+  FILE *out;
+  int row_stride;
+
+  cinfo.err = jpeg_std_error (&jerr);
+  jpeg_create_compress (&cinfo);
+
+  if (!(out = fopen ("fb.jpeg", "wb"))) {
+    fprintf (stderr, "can't open fb.jpeg\n");
+    exit (EXIT_FAILURE);
+  }
+  jpeg_stdio_dest (&cinfo, out);
+  cinfo.image_width = width;
+  cinfo.image_height = height;
+  cinfo.input_components = 3;
+  cinfo.in_color_space = JCS_RGB;
+  jpeg_set_defaults (&cinfo);
+  jpeg_start_compress (&cinfo, TRUE);
+
+  row_stride = width * 2;
+
+  while (cinfo.next_scanline < cinfo.image_height) {
+    row_pointer[0] = &buf[cinfo.next_scanline * row_stride];
+    jpeg_write_scanlines (&cinfo, row_pointer, 1);
+  }
+
+  jpeg_finish_compress (&cinfo);
+  jpeg_destroy_compress (&cinfo);
+  fclose (out);
+}
 
 int main (int argc, char *argv[])
 {
@@ -21,7 +57,7 @@ int main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
-  log = fopen ("log", "w");
+  log = fopen ("log", "wb");
   if (!log) {
     fprintf (stderr, "log open error\n");
     goto fail;
@@ -48,6 +84,7 @@ int main (int argc, char *argv[])
   }
 
   fwrite (buf, size, 1, log);
+  genjpeg(buf, var.xres, var.yres);
 
   munmap (buf, size);
   close (fd);
