@@ -39,8 +39,8 @@ int main (int argc, char *argv[])
     snprintf (ttyname, 10, "/dev/tty%d", currcons);
   }
   else {
-    snprintf (vcname, 10, "/dev/vcs", currcons);
-    snprintf (ttyname, 10, "/dev/tty", currcons);
+    snprintf (vcname, 10, "/dev/vcs");
+    snprintf (ttyname, 10, "/dev/tty");
   }
 
   vc_fd = open (vcname, O_RDONLY);
