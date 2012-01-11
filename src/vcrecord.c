@@ -34,8 +34,14 @@ int main (int argc, char *argv[])
     fprintf (stderr, "tty number must be < 0 or > 7\n");
     exit (EXIT_FAILURE);
   }
-  snprintf (vcname, 10, "/dev/vcs%d", currcons);
-  snprintf (ttyname, 10, "/dev/tty%d", currcons);
+  if (currcons) {
+    snprintf (vcname, 10, "/dev/vcs%d", currcons);
+    snprintf (ttyname, 10, "/dev/tty%d", currcons);
+  }
+  else {
+    snprintf (vcname, 10, "/dev/vcs", currcons);
+    snprintf (ttyname, 10, "/dev/tty", currcons);
+  }
 
   vc_fd = open (vcname, O_RDONLY);
   if (vc_fd < 0) {
