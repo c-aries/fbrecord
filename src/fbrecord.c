@@ -8,6 +8,30 @@
 #include <linux/fb.h>
 #include <jpeglib.h>
 
+static void rgb565_to_rgb888 (unsigned char *inbuf, int insize, unsigned char **outbuf, int *outsize)
+{
+  int i, count;
+  int r, g, b;
+  unsigned short src ;
+  unsigned char *dest;
+
+  if (insize % 2) {
+    outbuf = NULL;
+    outsize = 0;
+    return;
+  }
+  count = insize / 2;
+  *outsize = count * 3;
+  dest = *outbuf = malloc (*outsize * sizeof(**outbuf));
+  for (i = 0; i < count; i++) {
+    src = *(unsigned short *)(inbuf + i * 2);
+/*     src = (inbuf[i * 2] << 8) + inbuf[i * 2 + 1]; */
+    dest[i * 3] = ((src >> 11) & 0x1f) * 0xff / 0x1f;
+    dest[i * 3 + 1] = ((src >> 5) & 0x3f) * 0xff / 0x3f;
+    dest[i * 3 + 2] = (src & 0x1f) * 0xff / 0x1f;
+  }
+}
+
 static void genjpeg (unsigned char *buf, int width, int height)
 {
   struct jpeg_compress_struct cinfo;
@@ -16,6 +40,9 @@ static void genjpeg (unsigned char *buf, int width, int height)
   FILE *out;
   int row_stride;
 
+  if (!buf) {
+    return;
+  }
   cinfo.err = jpeg_std_error (&jerr);
   jpeg_create_compress (&cinfo);
 
@@ -31,7 +58,7 @@ static void genjpeg (unsigned char *buf, int width, int height)
   jpeg_set_defaults (&cinfo);
   jpeg_start_compress (&cinfo, TRUE);
 
-  row_stride = width * 2;
+  row_stride = width * 3;
 
   while (cinfo.next_scanline < cinfo.image_height) {
     row_pointer[0] = &buf[cinfo.next_scanline * row_stride];
@@ -45,10 +72,10 @@ static void genjpeg (unsigned char *buf, int width, int height)
 
 int main (int argc, char *argv[])
 {
-  int fd, size;
+  int fd, size, jsize;
   struct fb_var_screeninfo var;
   struct fb_fix_screeninfo fix;
-  unsigned char *buf;
+  unsigned char *buf, *jbuf = NULL;
   FILE *log;
 
   fd = open ("/dev/fb0", O_RDWR);
@@ -84,7 +111,9 @@ int main (int argc, char *argv[])
   }
 
   fwrite (buf, size, 1, log);
-  genjpeg(buf, var.xres, var.yres);
+  rgb565_to_rgb888 (buf, size, &jbuf, &jsize);
+  genjpeg (jbuf, var.xres, var.yres);
+  free (jbuf);
 
   munmap (buf, size);
   close (fd);
